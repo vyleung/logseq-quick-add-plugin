@@ -1,6 +1,6 @@
 {
   "name": "logseq-quick-add-plugin",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Add and duplicate blocks using keyboard shortcuts",
   "main": "dist/index.html",
   "targets": {

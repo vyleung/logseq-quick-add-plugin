@@ -28,9 +28,9 @@ const settings = [
   {
     key: "Shortcut_AddChildBlock",
     title: "Keyboard shortcut to add a child block to the current block",
-    description: "This is the keyboard shortcut to add a child block to the current block (default: ctrl+enter)",
+    description: "This is the keyboard shortcut to add a child block to the current block (default: ctrl+alt+enter)",
     type: "string",
-    default: "ctrl+enter"
+    default: "ctrl+alt+enter"
   },
   {
     key: "Shortcut_DuplicateBlock",

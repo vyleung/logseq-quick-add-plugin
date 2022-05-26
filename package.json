@@ -1,6 +1,6 @@
 {
   "name": "logseq-quick-add-plugin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Add and duplicate blocks using keyboard shortcuts",
   "main": "dist/index.html",
   "targets": {
@@ -16,6 +16,7 @@
   "dependencies": {
     "@logseq/libs": "^0.0.6",
     "date-fns": "^2.28.0",
+    "dayjs": "^1.11.2",
     "driftless": "^2.0.3"
   },
   "devDependencies": {

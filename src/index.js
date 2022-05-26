@@ -1,63 +1,100 @@
 import "@logseq/libs";
 import { format } from "date-fns";
+import dayjs from "dayjs";
 import { setDriftlessTimeout } from "driftless";
 
 const settings = [
   {
     key: "Shortcut_AddParentBlock",
-    title: "Keyboard shortcut to add a new parent block to the end of the current page",
-    description: 'This is the keyboard shortcut to add a new parent block to the end of the current page (default: mod+e - Mac: cmd+e | Windows: ctrl+e)',
+    title: "Keyboard shortcut to add a new parent block at the end of the current page",
+    description: "This is the keyboard shortcut at add a new parent block to the end of the current page (default: mod+e - Mac: cmd+e | Windows: ctrl+e)",
     type: "string",
     default: "mod+e"
   },
   {
     key: "Shortcut_AddSiblingBlock_Before",
     title: "Keyboard shortcut to add a sibling block before the current block",
-    description: 'This is the keyboard shortcut to add a sibling block above the current block (default: alt+shift+enter)',
+    description: "This is the keyboard shortcut to add a sibling block above the current block (default: alt+shift+enter)",
     type: "string",
     default: "alt+shift+enter"
   },
   {
     key: "Shortcut_AddSiblingBlock_After",
     title: "Keyboard shortcut to add a sibling block after the current block",
-    description: 'This is the keyboard shortcut to add a sibling block below the current block (default: alt+enter)',
+    description: "This is the keyboard shortcut to add a sibling block below the current block (default: alt+enter)",
     type: "string",
     default: "alt+enter"
   },
   {
     key: "Shortcut_AddChildBlock",
     title: "Keyboard shortcut to add a child block to the current block",
-    description: 'This is the keyboard shortcut to add a child block to the current block (default: ctrl+enter)',
+    description: "This is the keyboard shortcut to add a child block to the current block (default: ctrl+enter)",
     type: "string",
     default: "ctrl+enter"
   },
   {
     key: "Shortcut_DuplicateBlock",
     title: "Keyboard shortcut to duplicate the current block",
-    description: 'This is the keyboard shortcut to to duplicate the current block (default: mod+d - Mac: cmd+d | Windows: ctrl+d)',
+    description: "This is the keyboard shortcut to duplicate the current block (default: mod+d - Mac: cmd+d | Windows: ctrl+d)",
     type: "string",
     default: "mod+d"
+  },
+  {
+    key: "Shortcut_CopySelectedTextAsBlockRefAlias",
+    title: "Keyboard shortcut to copy the selected text with reference to the block it's in",
+    description: "This is the keyboard shortcut to copy the selected text with reference to the block it's in (default: mod+alt+c - Mac: cmd+alt+c | Windows: ctrl+alt+c)",
+    type: "string",
+    default: "mod+alt+c"
+  },
+  {
+    key: "Shortcut_InsertCurrentDateTime",
+    title: "Keyboard shortcut to insert the current date and time",
+    description: "This is the keyboard shortcut to insert the current date and time using a custom time format (default: mod+alt+d - Mac: cmd+alt+d | Windows: ctrl+alt+d)",
+    type: "string",
+    default: "mod+alt+d"
+  },
+  {
+    key: "Shortcut_InsertCurrentTime",
+    title: "Keyboard shortcut to insert the current time",
+    description: "This is the keyboard shortcut to insert the current time using a custom time format (default: mod+alt+t - Mac: cmd+alt+t | Windows: ctrl+alt+t)",
+    type: "string",
+    default: "mod+alt+t"
+  },
+  {
+    key: "CurrentTimeFormat",
+    title: "What time format do you want to use for the current time?",
+    description: "Default: hh:mm A (e.g. 01:23 PM) – For information about how to customize the format, go to: https://day.js.org/docs/en/display/format",
+    type: "string",
+    default: "hh:mm A"
   }
 ]
 logseq.useSettingsSchema(settings);
 
-let todays_journal_title;
 let last_block_uuid;
 let sibling_location;
 let blocks_to_duplicate = [];
+let current_type;
+let current_date;
+let current_time;
+let selected_text;
+
+function getCurrentDate() {
+  logseq.App.getUserConfigs().then(configs => {
+    current_date = format(new Date(), configs.preferredDateFormat); 
+  });
+}
 
 function addParentBlock() {
   logseq.Editor.getCurrentPageBlocksTree().then(page_blocks => {
     // keyboard shortcut was activated in the journals section
     if (page_blocks == null) {
-      logseq.App.getUserConfigs().then(configs => {
-        // get the title of today's journal
-        todays_journal_title = format(new Date(), configs.preferredDateFormat);   
+      getCurrentDate();
 
-        logseq.Editor.getPageBlocksTree(todays_journal_title).then(todays_journal_blocks => {
+      setDriftlessTimeout(() => {
+        logseq.Editor.getPageBlocksTree(current_date).then(todays_journal_blocks => {
           // if there are no blocks in today's journal page, add a block
           if (todays_journal_blocks.length == 0) {
-            logseq.Editor.appendBlockInPage(todays_journal_title, "");
+            logseq.Editor.appendBlockInPage(current_date, "");
           }
           // if there's only 1 block in today's journal page and it doesn't contain content, enter edit mode in the block
           else if ((todays_journal_blocks.length == 1) && (todays_journal_blocks[0].content == "")) {
@@ -72,7 +109,7 @@ function addParentBlock() {
             });
           }
         });
-      });
+      }, 25);
     }
     // keyboard shortcut was activated in regular pages
     else {
@@ -184,6 +221,57 @@ function duplicateBlock() {
   });
 }
 
+function copySelectedTextAsBlockRefAlias() {
+  // get the selected text
+  selected_text = parent.document.getSelection().toString();
+  
+  logseq.Editor.checkEditing().then(selected_text_parent_uuid => {
+    if ((selected_text != "") && (selected_text_parent_uuid)) {
+      window.focus();
+
+      // format selected text and block uuid and then copy it to the clipboard
+      navigator.clipboard.writeText(`[${selected_text}](((${selected_text_parent_uuid})))`);
+
+      setDriftlessTimeout(() => {
+        logseq.UI.showMsg("Copied selected text as block ref alias!");
+      }, 25);
+    }
+    else if ((selected_text == "") && (selected_text_parent_uuid)) {
+      window.focus();
+
+      // format selected text and block uuid and then copy it to the clipboard
+      navigator.clipboard.writeText(`[](((${selected_text_parent_uuid})))`);
+
+      setDriftlessTimeout(() => {
+        logseq.UI.showMsg("Copied block ref alias!");
+      }, 25);
+    }
+    else {
+      logseq.UI.showMsg("Enter edit mode and try again", "warning");
+    }
+  });
+}
+
+function insertCurrentDateTime() {
+  current_time = dayjs().format(logseq.settings.CurrentTimeFormat);
+
+  logseq.Editor.checkEditing().then(block => {
+    if ((block) && (current_type == "time only")) {
+      logseq.Editor.insertAtEditingCursor(`${current_time}`);
+    }
+    else if ((block) && (current_type == "date and time")) {
+      getCurrentDate();
+
+      setDriftlessTimeout(() => {
+        logseq.Editor.insertAtEditingCursor(`[[${current_date}]] at ${current_time}`);
+      }, 25);
+    }
+    else {
+      logseq.UI.showMsg("Enter edit mode and try again", "warning");
+    }
+  });
+}
+
 const main = async () => {
   console.log("logseq-quick-add-plugin loaded");
 
@@ -192,7 +280,7 @@ const main = async () => {
     // add parent block
     logseq.App.registerCommandPalette({
       key: `Shortcut_AddParentBlock`,
-      label: "Add a new block to the end of the current page",
+      label: "Quick Add: Add a new block at the end of the current page",
       keybinding: {
         binding: logseq.settings.Shortcut_AddParentBlock,
         mode: "global",
@@ -204,7 +292,7 @@ const main = async () => {
     // add sibling block (before)
     logseq.App.registerCommandPalette({
       key: `quick-add-Shortcut_AddSiblingBlock_Before`,
-      label: "Add a sibling block before the current block",
+      label: "Quick Add: Add a sibling block before the current block",
       keybinding: {
         binding: logseq.settings.Shortcut_AddSiblingBlock_Before,
         mode: "global",
@@ -217,7 +305,7 @@ const main = async () => {
     // add sibling block (after)
     logseq.App.registerCommandPalette({
       key: `quick-add-Shortcut_AddSiblingBlock_After`,
-      label: "Add a sibling block after the current block",
+      label: "Quick Add: Add a sibling block after the current block",
       keybinding: {
         binding: logseq.settings.Shortcut_AddSiblingBlock_After,
         mode: "global",
@@ -230,7 +318,7 @@ const main = async () => {
     // add child block
     logseq.App.registerCommandPalette({
       key: `quick-add-Shortcut_AddChildBlock`,
-      label: "Add a child block to the current block",
+      label: "Quick Add: Add a child block to the current block",
       keybinding: {
         binding: logseq.settings.Shortcut_AddChildBlock,
         mode: "global",
@@ -242,7 +330,7 @@ const main = async () => {
     // duplicate block(s)
     logseq.App.registerCommandPalette({
       key: `quick-add-Shortcut_DuplicateBlock`,
-      label: "Duplicate the current block(s)",
+      label: "Quick Add: Duplicate the current block(s)",
       keybinding: {
         binding: logseq.settings.Shortcut_DuplicateBlock,
         mode: "global",
@@ -250,8 +338,62 @@ const main = async () => {
     }, async () => {
       duplicateBlock();
     });
+
+    // copy selected text with reference to the block its in
+    logseq.App.registerCommandPalette({
+      key: `quick-add-Shortcut_CopySelectedTextAsBlockRefAlias`,
+      label: "Quick Add: Copy selected text as block reference alias",
+      keybinding: {
+        binding: logseq.settings.Shortcut_CopySelectedTextAsBlockRefAlias,
+        mode: "global",
+      }
+    }, async () => {
+      copySelectedTextAsBlockRefAlias();
+    });
+
+    // insert the current date and time
+    logseq.App.registerCommandPalette({
+      key: `quick-add-Shortcut_InsertCurrentDateTime`,
+      label: "Quick Add: Insert the current date and time",
+      keybinding: {
+        binding: logseq.settings.Shortcut_InsertCurrentDateTime,
+        mode: "global",
+      }
+    }, async () => {
+      current_type = "date and time";
+      insertCurrentDateTime();
+    });
+
+    // insert the current time only
+    logseq.App.registerCommandPalette({
+      key: `quick-add-Shortcut_InsertCurrentTime`,
+      label: "Quick Add: Insert the current time",
+      keybinding: {
+        binding: logseq.settings.Shortcut_InsertCurrentTime,
+        mode: "global",
+      }
+    }, async () => {
+      current_type = "time only";
+      insertCurrentDateTime();
+    });
   }
   registerKeyboardShortcuts();
+
+  // register slash commands
+  function registerSlashCommands() {
+    // insert the current date and time
+    logseq.Editor.registerSlashCommand("Quick Add: Insert current date and time", async () => {
+      current_type = "date and time";
+      insertCurrentDateTime();
+    });
+
+    // insert the current time only
+    logseq.Editor.registerSlashCommand("Quick Add: Insert current time", async () => {
+      current_type = "time only";
+      insertCurrentDateTime();
+    });
+  }
+  registerSlashCommands();
 }
 
 logseq.ready(main).catch(console.error);

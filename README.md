@@ -3,11 +3,10 @@
 
 ## Features
 ### Use [custom keyboard shortcuts](#settings) to:
-#### v.1.0.0
+#### v.1.1.0+
 - Add a parent block to the end of the current page
 - Add a sibling block before or after the current block
 - Add a child block to the current block
-    - 🚨 **NOTE:** only works if the current block has 1+ child blocks
 - Duplicate one block or multiple blocks
 
 #### Demo
@@ -30,7 +29,9 @@
 1. Click the 3 dots in the righthand corner → `Settings` → `Advanced` → Enable `Developer mode` and `Plug-in system`
 2. Click the 3 dots in the righthand corner → `Plugins` – OR – Use keyboard shortcut `Esc t p`
 
-### Load plugin via the marketplace (not available yet)
+### Load plugin via the marketplace
+1. Click the 3 dots in the righthand corner → `Plugins` – OR – Use keyboard shortcut `Esc t p`
+2. Go to the `Marketplace` tab and search for `Quick Add` → Click `Install`
 
 ### Load plugin manually
 1. Download the [latest release](https://github.com/vyleung/logseq-quick-add-plugin/releases) of the plugin (e.g logseq-quick-add-plugin-v.1.0.0.zip) from Github

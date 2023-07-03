@@ -5,6 +5,14 @@ import { setDriftlessTimeout } from "driftless";
 
 const settings = [
   {
+    key: "EditMode_DuplicateBlock",
+    title: "Keep duplicate block in edit mode?",
+    description: "Check the box if you would like the the duplicated block to be in edit mode",
+    default: false,
+    type: "boolean",
+    enumPicker: "checkbox"
+  },
+  {
     key: "Shortcut_AddParentBlock",
     title: "Keyboard shortcut to add a new parent block at the end of the current page",
     description: "This is the keyboard shortcut at add a new parent block to the end of the current page (default: mod+e - Mac: cmd+e | Windows: ctrl+e)",
@@ -160,9 +168,17 @@ function addSiblingBlock() {
 function addChildBlock() {
   logseq.Editor.checkEditing().then(parent_block_uuid => {
     if (parent_block_uuid) {
-      // get the last child block from the current block and insert a sibling block underneath it
       logseq.Editor.getBlock(parent_block_uuid, {includeChildren: true}).then(parent_block => {
-        if (parent_block.children.length > 0) {
+        // if the parent block has no child blocks
+        if (parent_block.children.length == 0) {
+          logseq.Editor.insertBlock(parent_block_uuid, "", {
+            sibling: false
+          });
+        }
+
+        // if the parent block has 1+ children blocks
+        else if (parent_block.children.length > 0) {
+          // get the last child block form the current block and insert a sibling block underneath it
           last_block_uuid = parent_block.children[parent_block.children.length - 1].uuid;
           logseq.Editor.insertBlock(last_block_uuid, "", {
             sibling: true
@@ -176,7 +192,7 @@ function addChildBlock() {
   });
 }
 
-function duplicateBlock() {
+function duplicateBlock(edit_mode_duplicate_block) {
   logseq.Editor.checkEditing().then(active_block_uuid => {
     // duplicating one block
     if (active_block_uuid) {
@@ -185,9 +201,12 @@ function duplicateBlock() {
         logseq.Editor.insertBatchBlock(active_block_uuid, active_block, {
           sibling: true
         });
-        setDriftlessTimeout(() => {
-          logseq.Editor.exitEditingMode();
-        }, 50);
+
+        if (!edit_mode_duplicate_block) {
+          setDriftlessTimeout(() => {
+            logseq.Editor.exitEditingMode();
+          }, 50);
+        }
       });
     }
     else {
@@ -207,10 +226,16 @@ function duplicateBlock() {
             logseq.Editor.insertBatchBlock(last_block_uuid, blocks_to_duplicate, {
               sibling: true
             });
+
+            if (!edit_mode_duplicate_block) {
+              setDriftlessTimeout(() => {
+                logseq.Editor.exitEditingMode();
+              }, 75);
+            }
+
             setDriftlessTimeout(() => {
-              logseq.Editor.exitEditingMode();
               blocks_to_duplicate = [];
-            }, 75);
+            }, 100);
           }, 75);
         }
         else {
@@ -336,7 +361,8 @@ const main = async () => {
         mode: "global",
       }
     }, async () => {
-      duplicateBlock();
+      const edit_mode_duplicate_block_setting = logseq.settings.EditMode_DuplicateBlock;
+      duplicateBlock(edit_mode_duplicate_block_setting);
     });
 
     // copy selected text with reference to the block its in
